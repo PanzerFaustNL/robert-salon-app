@@ -24,7 +24,7 @@ class AdminAgendaScreen extends StatelessWidget {
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(children: [
                   Expanded(child: Text(DateFormat('dd-MM-yyyy • HH:mm').format(a.startsAt), style: const TextStyle(color: AppColors.goldSoft, fontWeight: FontWeight.w700))),
-                  Chip(label: Text(a.status)),
+                  Chip(label: Text(a.statusLabel)),
                 ]),
                 const SizedBox(height: 6),
                 Text(a.customerName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),

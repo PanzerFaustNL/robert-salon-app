@@ -46,7 +46,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(a.service.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
                   const SizedBox(height: 5),
-                  Text('${DateFormat('HH:mm').format(a.startsAt)} • ${a.status}', style: const TextStyle(color: AppColors.gold)),
+                  Text('${DateFormat('HH:mm').format(a.startsAt)} • ${a.statusLabel}', style: const TextStyle(color: AppColors.gold)),
                   const SizedBox(height: 8),
                   Text(a.idea, style: const TextStyle(color: AppColors.muted)),
                 ])),

@@ -24,7 +24,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Widget build(BuildContext context) {
     final upcoming = widget.store.appointments.where((a) => a.startsAt.isAfter(DateTime.now())).toList()..sort((a,b) => a.startsAt.compareTo(b.startsAt));
     final unpaid = widget.store.appointments.where((a) => a.service.deposit > 0 && !a.depositPaid).length;
-    final pending = widget.store.appointments.where((a) => a.status == 'Aangevraagd').length;
+    final pending = widget.store.appointments.where((a) => a.status == 'requested').length;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Robert • Beheer')),
@@ -60,7 +60,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           leading: const Icon(Icons.circle, size: 10, color: AppColors.gold),
           title: Text(a.customerName),
           subtitle: Text('${DateFormat('dd-MM • HH:mm').format(a.startsAt)} • ${a.service.name}'),
-          trailing: Text(a.status, style: const TextStyle(color: AppColors.goldSoft)),
+          trailing: Text(a.statusLabel, style: const TextStyle(color: AppColors.goldSoft)),
         ))),
       ]),
     );

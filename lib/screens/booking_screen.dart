@@ -24,9 +24,21 @@ class _BookingScreenState extends State<BookingScreen> {
   final placement = TextEditingController();
   bool consent = false;
   bool conditions = false;
+  bool submitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.store.addListener(_refresh);
+  }
+
+  void _refresh() {
+    if (mounted) setState(() {});
+  }
 
   @override
   void dispose() {
+    widget.store.removeListener(_refresh);
     for (final c in [name, email, phone, idea, placement]) { c.dispose(); }
     super.dispose();
   }
@@ -51,8 +63,18 @@ class _BookingScreenState extends State<BookingScreen> {
           padding: const EdgeInsets.only(top: 18),
           child: Row(children: [
             Expanded(child: ElevatedButton(
-              onPressed: canContinue ? () => step == 5 ? _finish() : setState(() => step++) : null,
-              child: Text(step == 5 ? 'Aanvraag versturen' : 'Verder'),
+              onPressed: canContinue && !submitting
+                  ? () {
+                      if (step == 5) {
+                        _finish();
+                      } else {
+                        setState(() => step++);
+                      }
+                    }
+                  : null,
+              child: submitting && step == 5
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                  : Text(step == 5 ? 'Aanvraag versturen' : 'Verder'),
             )),
             if (step > 0) ...[
               const SizedBox(width: 10),
@@ -72,18 +94,44 @@ class _BookingScreenState extends State<BookingScreen> {
     );
   }
 
-  Widget _serviceStep() => Column(
-    children: widget.store.services.map((s) => Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: RadioListTile<SalonService>(
-        value: s,
-        groupValue: service,
-        onChanged: (v) => setState(() => service = v),
-        title: Text(s.name),
-        subtitle: Text('${s.description}\n± ${s.durationMinutes} min${s.deposit > 0 ? ' • aanbetaling €${s.deposit.toStringAsFixed(0)}' : ''}'),
-      ),
-    )).toList(),
-  );
+  Widget _serviceStep() {
+    final available = widget.store.services
+        .where((item) => item.active && item.bookable)
+        .toList();
+
+    if (widget.store.loading && available.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(24),
+        child: CircularProgressIndicator(),
+      );
+    }
+
+    if (available.isEmpty) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            widget.store.databaseConfigured
+                ? 'Er staan nog geen actieve boekbare behandelingen in de database.'
+                : 'De database is nog niet gekoppeld. Vul eerst de Supabase-configuratie in.',
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: available.map((s) => Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: RadioListTile<SalonService>(
+          value: s,
+          groupValue: service,
+          onChanged: (v) => setState(() => service = v),
+          title: Text(s.name),
+          subtitle: Text('${s.description}\n± ${s.durationMinutes} min${s.deposit > 0 ? ' • aanbetaling €${s.deposit.toStringAsFixed(0)}' : ''}'),
+        ),
+      )).toList(),
+    );
+  }
 
   Widget _dateStep() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
     ListTile(
@@ -145,28 +193,57 @@ class _BookingScreenState extends State<BookingScreen> {
     ]),
   ));
 
-  void _finish() {
-    final startsAt = DateTime(date!.year, date!.month, date!.day, time!.hour, time!.minute);
-    widget.store.addAppointment(Appointment(
-      id: 'a-${DateTime.now().millisecondsSinceEpoch}',
-      customerName: name.text.trim(),
-      email: email.text.trim(),
-      phone: phone.text.trim(),
-      service: service!,
-      startsAt: startsAt,
-      idea: idea.text.trim(),
-      placement: placement.text.trim(),
-      consentComplete: consent,
-      depositPaid: false,
-    ));
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Aanvraag ontvangen'),
-        content: const Text('De afspraak staat nu in de app als aanvraag. Robert kan deze vanuit het beheergedeelte beoordelen en bevestigen.'),
-        actions: [TextButton(onPressed: () { Navigator.pop(context); Navigator.pop(context); }, child: const Text('Klaar'))],
-      ),
+  Future<void> _finish() async {
+    final startsAt = DateTime(
+      date!.year,
+      date!.month,
+      date!.day,
+      time!.hour,
+      time!.minute,
     );
+
+    setState(() => submitting = true);
+    try {
+      await widget.store.createAppointment(
+        customerName: name.text.trim(),
+        email: email.text.trim(),
+        phone: phone.text.trim(),
+        service: service!,
+        startsAt: startsAt,
+        idea: idea.text.trim(),
+        placement: placement.text.trim(),
+        consentComplete: consent,
+      );
+
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Aanvraag ontvangen'),
+          content: const Text(
+            'De afspraak is opgeslagen in de database. Robert kan deze vanuit het beheergedeelte beoordelen en bevestigen.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.pop(this.context);
+              },
+              child: const Text('Klaar'),
+            ),
+          ],
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Opslaan mislukt: $error'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => submitting = false);
+    }
   }
 }
