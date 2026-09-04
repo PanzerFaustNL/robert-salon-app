@@ -9,21 +9,14 @@ import 'services/app_store.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // SupabaseClient? database;
-  // if (SupabaseConfig.isConfigured) {
-  //   await Supabase.initialize(
-  //     url: SupabaseConfig.url,
-  //     publishableKey: SupabaseConfig.publishableKey,
-  //   );
-  //   database = Supabase.instance.client;
-  // }
-
-  await Supabase.initialize(
-    url: 'https://zyvjpejazhxtpazprixh.supabase.co',
-    publishableKey: 'sb_publishable_-amRhajxjn1XdeH-DkvG5w_Xce-1Xdy',
-  );
-
-  final database = Supabase.instance.client;
+  SupabaseClient? database;
+  if (SupabaseConfig.isConfigured) {
+    await Supabase.initialize(
+      url: SupabaseConfig.url,
+      publishableKey: SupabaseConfig.publishableKey,
+    );
+    database = Supabase.instance.client;
+  }
 
   runApp(RobertSalonApp(database: database));
 }

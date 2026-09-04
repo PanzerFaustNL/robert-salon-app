@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/app_theme.dart';
 import '../services/app_store.dart';
+import '../services/external_links.dart';
 import 'admin/admin_dashboard_screen.dart';
 
 class AccountScreen extends StatefulWidget {
@@ -30,6 +31,17 @@ class _AccountScreenState extends State<AccountScreen> {
 
   void _refresh() => setState(() {});
 
+  Future<void> _openConsentForm() async {
+    final ok = await ExternalLinks.openConsentForm();
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Het toestemmingsformulier kon niet worden geopend.'),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final store = widget.store;
@@ -44,7 +56,7 @@ class _AccountScreenState extends State<AccountScreen> {
             ? 'Databasefout'
             : 'Supabase verbonden';
     final dbSubtitle = !store.databaseConfigured
-        ? 'Start de app met config/supabase.json.'
+        ? 'Controleer de Supabase-configuratie van de app.'
         : store.databaseError ??
             '${store.services.length} diensten geladen uit de database';
 
@@ -73,10 +85,14 @@ class _AccountScreenState extends State<AccountScreen> {
               trailing: Icon(Icons.chevron_right),
             ),
             const Divider(height: 1),
-            const ListTile(
-              leading: Icon(Icons.description_outlined),
-              title: Text('Gezondheidsverklaring'),
-              trailing: Icon(Icons.chevron_right),
+            ListTile(
+              leading: const Icon(Icons.description_outlined),
+              title: const Text('Toestemmingsformulier tatoeage'),
+              subtitle: const Text(
+                'Gezondheidsverklaring en toestemming via de website',
+              ),
+              trailing: const Icon(Icons.open_in_new),
+              onTap: _openConsentForm,
             ),
             const Divider(height: 1),
             ListTile(

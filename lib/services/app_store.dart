@@ -135,7 +135,7 @@ class AppStore extends ChangeNotifier {
   }) async {
     if (_database == null) {
       throw StateError(
-        'Supabase is nog niet ingesteld. Vul config/supabase.json in en start met --dart-define-from-file=config/supabase.json.',
+        'Supabase is nog niet ingesteld. Controleer lib/config/supabase_config.dart.',
       );
     }
 
