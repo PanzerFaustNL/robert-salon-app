@@ -14,7 +14,9 @@ class AccountScreen extends StatefulWidget {
 }
 
 class _AccountScreenState extends State<AccountScreen> {
-  final pin = TextEditingController();
+  final email = TextEditingController();
+  final password = TextEditingController();
+  bool obscure = true;
 
   @override
   void initState() {
@@ -25,7 +27,8 @@ class _AccountScreenState extends State<AccountScreen> {
   @override
   void dispose() {
     widget.store.removeListener(_refresh);
-    pin.dispose();
+    email.dispose();
+    password.dispose();
     super.dispose();
   }
 
@@ -37,6 +40,31 @@ class _AccountScreenState extends State<AccountScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Het toestemmingsformulier kon niet worden geopend.'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _signIn() async {
+    try {
+      await widget.store.signInOwner(
+        email: email.text,
+        password: password.text,
+      );
+      if (!mounted) return;
+      password.clear();
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => AdminDashboardScreen(store: widget.store),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Inloggen mislukt: $error'),
+          behavior: SnackBarBehavior.floating,
         ),
       );
     }
@@ -58,122 +86,182 @@ class _AccountScreenState extends State<AccountScreen> {
     final dbSubtitle = !store.databaseConfigured
         ? 'Controleer de Supabase-configuratie van de app.'
         : store.databaseError ??
-            '${store.services.length} diensten geladen uit de database';
+            '${store.services.where((s) => s.active && s.bookable).length} boekbare diensten beschikbaar';
 
     return Scaffold(
       appBar: AppBar(title: const Text('Account')),
-      body: ListView(padding: const EdgeInsets.all(20), children: [
-        const CircleAvatar(
-          radius: 34,
-          backgroundColor: Color(0xFF24201A),
-          foregroundColor: AppColors.gold,
-          child: Icon(Icons.person, size: 34),
-        ),
-        const SizedBox(height: 14),
-        const Center(
-          child: Text(
-            'Gast / klant',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          const CircleAvatar(
+            radius: 34,
+            backgroundColor: Color(0xFF24201A),
+            foregroundColor: AppColors.gold,
+            child: Icon(Icons.person, size: 34),
           ),
-        ),
-        const SizedBox(height: 26),
-        Card(
-          child: Column(children: [
-            const ListTile(
-              leading: Icon(Icons.person_outline),
-              title: Text('Persoonsgegevens'),
-              trailing: Icon(Icons.chevron_right),
-            ),
-            const Divider(height: 1),
-            ListTile(
-              leading: const Icon(Icons.description_outlined),
-              title: const Text('Toestemmingsformulier tatoeage'),
-              subtitle: const Text(
-                'Gezondheidsverklaring en toestemming via de website',
+          const SizedBox(height: 14),
+          Center(
+            child: Text(
+              store.isOwner ? 'Robert • eigenaar' : 'Gast / klant',
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
               ),
-              trailing: const Icon(Icons.open_in_new),
-              onTap: _openConsentForm,
             ),
-            const Divider(height: 1),
-            ListTile(
-              leading: const Icon(Icons.notifications_none),
-              title: const Text('Herinneringen'),
-              trailing: Switch(value: true, onChanged: (_) {}),
+          ),
+          if (store.isOwner && store.ownerEmail != null) ...[
+            const SizedBox(height: 5),
+            Center(
+              child: Text(
+                store.ownerEmail!,
+                style: const TextStyle(color: AppColors.muted),
+              ),
             ),
-          ]),
-        ),
-        const SizedBox(height: 18),
-        Card(
-          child: ListTile(
-            leading: Icon(dbIcon, color: AppColors.gold),
-            title: Text(dbTitle),
-            subtitle: Text(dbSubtitle),
-            trailing: store.databaseConfigured
-                ? IconButton(
-                    tooltip: 'Vernieuwen',
-                    onPressed: store.loading
-                        ? null
-                        : () {
-                            store.refreshAll();
-                          },
-                    icon: store.loading
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.refresh),
-                  )
-                : null,
-          ),
-        ),
-        const SizedBox(height: 28),
-        const Text(
-          'BEHEER',
-          style: TextStyle(
-            color: AppColors.gold,
-            letterSpacing: 2,
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 10),
-        TextField(
-          controller: pin,
-          obscureText: true,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Robert beheer-PIN',
-            hintText: 'Demo: 2580',
-          ),
-        ),
-        const SizedBox(height: 10),
-        ElevatedButton.icon(
-          onPressed: () {
-            if (pin.text == '2580') {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => AdminDashboardScreen(store: widget.store),
+          ],
+          const SizedBox(height: 26),
+          Card(
+            child: Column(
+              children: [
+                const ListTile(
+                  leading: Icon(Icons.person_outline),
+                  title: Text('Persoonsgegevens'),
+                  subtitle: Text('Klantprofiel wordt later aan klant-login gekoppeld'),
                 ),
-              );
-            } else {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Onjuiste PIN. Voor de demo is de PIN 2580.'),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.description_outlined),
+                  title: const Text('Toestemmingsformulier tatoeage'),
+                  subtitle: const Text(
+                    'Gezondheidsverklaring en toestemming via de website',
+                  ),
+                  trailing: const Icon(Icons.open_in_new),
+                  onTap: _openConsentForm,
                 ),
-              );
-            }
-          },
-          icon: const Icon(Icons.lock_open),
-          label: const Text('Open beheer'),
-        ),
-        const SizedBox(height: 10),
-        const Text(
-          'De demo-PIN is alleen bedoeld voor de prototypeversie. Voor productie wordt dit vervangen door Supabase Auth en een echte owner-rol.',
-          style: TextStyle(color: AppColors.muted, fontSize: 12),
-        ),
-      ]),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.notifications_none),
+                  title: const Text('Herinneringen'),
+                  trailing: Switch(value: true, onChanged: (_) {}),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+          Card(
+            child: ListTile(
+              leading: Icon(dbIcon, color: AppColors.gold),
+              title: Text(dbTitle),
+              subtitle: Text(dbSubtitle),
+              trailing: store.databaseConfigured
+                  ? IconButton(
+                      tooltip: 'Vernieuwen',
+                      onPressed: store.loading ? null : () => store.refreshAll(),
+                      icon: store.loading
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.refresh),
+                    )
+                  : null,
+            ),
+          ),
+          const SizedBox(height: 28),
+          const Text(
+            'BEHEER',
+            style: TextStyle(
+              color: AppColors.gold,
+              letterSpacing: 2,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 10),
+          if (store.isOwner) ...[
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => AdminDashboardScreen(store: widget.store),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.dashboard_outlined),
+              label: const Text('Open Robert beheer'),
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: store.adminLoading
+                  ? null
+                  : () async {
+                      await store.signOutOwner();
+                    },
+              icon: const Icon(Icons.logout),
+              label: const Text('Uitloggen als eigenaar'),
+            ),
+          ] else ...[
+            const Text(
+              'Eigenaar-login',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Alleen een Supabase-account met de owner-rol krijgt toegang tot klanten, agenda, foto’s en betalingen.',
+              style: TextStyle(color: AppColors.muted),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: email,
+              keyboardType: TextInputType.emailAddress,
+              autocorrect: false,
+              decoration: const InputDecoration(
+                labelText: 'E-mailadres',
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: password,
+              obscureText: obscure,
+              autocorrect: false,
+              enableSuggestions: false,
+              decoration: InputDecoration(
+                labelText: 'Wachtwoord',
+                suffixIcon: IconButton(
+                  onPressed: () => setState(() => obscure = !obscure),
+                  icon: Icon(
+                    obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                  ),
+                ),
+              ),
+              onSubmitted: (_) => _signIn(),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: store.adminLoading ? null : _signIn,
+              icon: store.adminLoading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.black,
+                      ),
+                    )
+                  : const Icon(Icons.lock_open),
+              label: const Text('Inloggen'),
+            ),
+            if (store.adminError != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                store.adminError!,
+                style: const TextStyle(color: AppColors.danger),
+              ),
+            ],
+          ],
+        ],
+      ),
     );
   }
 }

@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Robert Salon App</string>
+	<string>Robert Veldman Tattoo &amp; Art</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -24,6 +24,10 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Robert gebruikt toegang tot foto’s om referentie-, ontwerp- en resultaatfoto’s aan een klantdossier toe te voegen.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Robert gebruikt de camera om foto’s aan een klantdossier toe te voegen.</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>
