@@ -1,6 +1,6 @@
 workflows:
   ios-testflight:
-    name: Robert Salon App - TestFlight
+    name: Codemagic Robert Salon
 
     max_build_duration: 60
 
