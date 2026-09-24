@@ -1,4 +1,4 @@
-package com.example.robert_salon_app
+package nl.robertveldman.salonapp
 
 import io.flutter.embedding.android.FlutterActivity
 
